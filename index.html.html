@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ART 7 — Sound Designer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&family=JetBrains+Mono:wght@500;700&family=Syne:wght@800&display=swap');
+
+  :root {
+    --bg-dark: #050608;
+    --card-bg: rgba(15, 18, 28, 0.75);
+    --card-border: rgba(0, 240, 255, 0.2);
+    --accent-cyan: #00f0ff;
+    --accent-purple: #8a2be2;
+    --accent-green: #00ff88;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --discord: #5865F2;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+    padding-top: 80px;
+  }
+
+  /* Canvas Background Wave */
+  #waveCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.35;
+  }
+
+  /* Custom Cursor Glow */
+  #cursor-glow {
+    position: fixed;
+    width: 450px; height: 450px;
+    background: radial-gradient(circle, rgba(0, 240, 255, 0.14) 0%, rgba(138, 43, 226, 0.06) 50%, transparent 80%);
+    border-radius: 50%;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    z-index: 0;
+    transition: transform 0.1s ease-out;
+  }
+
+  /* ⚡ FLOATING TOP BAR ⚡ */
+  .top-navbar-container {
+    position: fixed;
+    top: 16px; left: 0;
+    width: 100%;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    padding: 0 20px;
+  }
+
+  .top-navbar {
+    width: 100%;
+    max-width: 950px;
+    background: rgba(10, 14, 22, 0.75);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    backdrop-filter: blur(20px);
+    border-radius: 100px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 15px rgba(0, 240, 255, 0.05);
+  }
+
+  .nav-brand {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+  }
+  .nav-brand span {
+    color: var(--accent-cyan);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    background: rgba(0, 240, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 240, 255, 0.2);
+  }
+
+  .nav-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent-green);
+    background: rgba(0, 255, 136, 0.08);
+    padding: 6px 14px;
+    border-radius: 50px;
+    border: 1px solid rgba(0, 255, 136, 0.2);
+  }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    background: var(--accent-green);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--accent-green);
+    animation: pulseGreen 1.5s infinite alternate;
+  }
+  @keyframes pulseGreen { 0% { opacity: 0.3; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1.2); } }
+
+  .nav-quick-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(88, 101, 242, 0.2);
+    border: 1px solid rgba(88, 101, 242, 0.4);
+    color: #fff;
+    padding: 6px 16px;
+    border-radius: 50px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+  .nav-quick-btn:hover {
+    background: var(--discord);
+    box-shadow: 0 0 15px rgba(88, 101, 242, 0.6);
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 600px) {
+    .nav-status { display: none; }
+  }
+
+  /* Container */
+  .wrap { max-width: 950px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* Header */
+  header { text-align: center; padding: 60px 0 20px; }
+  .brand-title {
+    font-family: 'Fredoka', sans-serif;
+    font-size: clamp(3rem, 8vw, 5rem);
+    font-weight: 700;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #fff 30%, var(--accent-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: heroFloat 4s ease-in-out infinite alternate;
+  }
+  @keyframes heroFloat { 0% { transform: translateY(0); } 100% { transform: translateY(-8px); } }
+
+  .sub-title {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent-cyan);
+    font-size: 1.1rem;
+    margin-top: 5px;
+  }
+
+  /* Audio Visualizer Graphic */
+  .visualizer {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 4px;
+    height: 35px;
+    margin: 25px 0 10px;
+  }
+  .v-bar {
+    width: 4px;
+    background: var(--accent-cyan);
+    border-radius: 4px;
+    animation: jump 1s ease-in-out infinite alternate;
+  }
+  .v-bar:nth-child(2n) { background: var(--accent-purple); animation-delay: 0.2s; }
+  .v-bar:nth-child(3n) { animation-delay: 0.4s; }
+  .v-bar:nth-child(4n) { animation-delay: 0.6s; }
+  @keyframes jump { 0% { height: 10%; } 100% { height: 100%; } }
+
+  /* Tabs */
+  .nav-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 30px;
+    flex-wrap: wrap;
+  }
+
+  .btn-tab {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--card-border);
+    padding: 16px 30px;
+    border-radius: 50px;
+    color: #fff;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    backdrop-filter: blur(10px);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .btn-tab:hover {
+    transform: translateY(-5px) scale(1.03);
+    border-color: var(--accent-cyan);
+    box-shadow: 0 10px 25px rgba(0, 240, 255, 0.25);
+    color: var(--accent-cyan);
+  }
+
+  .btn-tab.active {
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+    color: #000;
+    font-weight: 700;
+    border-color: transparent;
+    box-shadow: 0 12px 30px rgba(0, 240, 255, 0.4);
+    transform: translateY(-3px);
+  }
+
+  .arrow-icon {
+    width: 16px; height: 16px;
+    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+  .btn-tab.active .arrow-icon { transform: rotate(180deg); }
+
+  /* Panels */
+  .panel-container { margin-top: 30px; padding-bottom: 80px; }
+
+  .panel-content {
+    display: none;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+
+  .panel-content.show {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+    margin-top: 20px;
+  }
+
+  /* Work Grid Cards */
+  .work-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 22px;
+  }
+
+  .tilt-card {
+    position: relative;
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 2px;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+    transition: transform 0.2s ease-out, box-shadow 0.3s;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(25px);
+  }
+
+  .panel-content.show .tilt-card { animation: cascadeIn 0.5s forwards ease-out; }
+  .panel-content.show .tilt-card:nth-child(1) { animation-delay: 0.1s; }
+  .panel-content.show .tilt-card:nth-child(2) { animation-delay: 0.2s; }
+  .panel-content.show .tilt-card:nth-child(3) { animation-delay: 0.3s; }
+  .panel-content.show .tilt-card:nth-child(4) { animation-delay: 0.4s; }
+
+  @keyframes cascadeIn { to { opacity: 1; transform: translateY(0); } }
+
+  .tilt-card::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%; width: 200%; height: 200%;
+    background: conic-gradient(transparent, var(--accent-cyan), transparent 30%);
+    animation: rotateGlow 4s linear infinite;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .tilt-card:hover::before { opacity: 1; }
+  @keyframes rotateGlow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+  .card-inner {
+    position: relative;
+    z-index: 1;
+    background: rgba(10, 13, 20, 0.95);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+
+  .video-preview {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    overflow: hidden;
+  }
+
+  .video-preview img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+  }
+  .tilt-card:hover .video-preview img { transform: scale(1.1); }
+
+  .play-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.3s;
+  }
+  
+  .play-trigger {
+    width: 50px; height: 50px;
+    background: var(--accent-cyan);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #000;
+    font-size: 1.2rem;
+    box-shadow: 0 0 20px var(--accent-cyan);
+    transition: transform 0.3s ease;
+  }
+  .tilt-card:hover .play-trigger { transform: scale(1.15); }
+
+  .card-info { padding: 16px; text-align: center; }
+  .card-info h4 { font-family: 'Fredoka', sans-serif; font-size: 1.1rem; }
+
+  /* Glass Cards */
+  .glass-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 24px;
+    padding: 40px;
+    text-align: center;
+    backdrop-filter: blur(16px);
+    max-width: 650px;
+    margin: 0 auto;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+
+  .glass-card h3 { font-family: 'Fredoka', sans-serif; font-size: 2rem; margin-bottom: 12px; color: var(--accent-cyan); }
+  .glass-card p { color: var(--text-muted); line-height: 1.8; font-size: 1.05rem; }
+
+  .btn-discord {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--discord);
+    color: #fff;
+    padding: 16px 36px;
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    text-decoration: none;
+    margin-top: 20px;
+    box-shadow: 0 10px 25px rgba(88, 101, 242, 0.4);
+    transition: all 0.3s ease;
+  }
+  .btn-discord:hover {
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 0 15px 35px rgba(88, 101, 242, 0.7);
+  }
+
+  /* 🎬 IN-PAGE VIDEO MODAL 🎬 */
+  .video-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(15px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    padding: 20px;
+  }
+
+  .video-modal.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .modal-box {
+    position: relative;
+    width: 100%;
+    max-width: 850px;
+    background: #0d111a;
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0, 240, 255, 0.2);
+    transform: scale(0.9);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .video-modal.active .modal-box {
+    transform: scale(1);
+  }
+
+  .modal-iframe-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+  }
+
+  .modal-iframe-wrap iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  .close-modal {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 36px;
+    height: 36px;
+    background: rgba(0,0,0,0.7);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+  }
+  .close-modal:hover { background: var(--accent-cyan); color: #000; }
+</style>
+</head>
+<body>
+
+<!-- Canvas Wave -->
+<canvas id="waveCanvas"></canvas>
+
+<!-- Cursor Glow -->
+<div id="cursor-glow"></div>
+
+<!-- Floating Navigation Bar -->
+<div class="top-navbar-container">
+  <div class="top-navbar">
+    <a href="#" class="nav-brand">ART 7 <span>AUDIO LAB</span></a>
+    <div class="nav-status"><div class="status-dot"></div> AVAILABLE FOR WORK</div>
+    <a href="https://discord.com/users/z.0_" target="_blank" class="nav-quick-btn">Discord: z.0_</a>
+  </div>
+</div>
+
+<div class="wrap">
+  <header>
+    <h1 class="brand-title">ART 7</h1>
+    <div class="sub-title">Audio & Sound Designer</div>
+    
+    <div class="visualizer">
+      <div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div>
+      <div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div>
+      <div class="v-bar"></div><div class="v-bar"></div>
+    </div>
+  </header>
+
+  <div class="nav-tabs">
+    <button class="btn-tab" onclick="toggleSection('work', this)">
+      See My Work
+      <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <button class="btn-tab" onclick="toggleSection('about', this)">
+      About Me
+      <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <button class="btn-tab" onclick="toggleSection('contact', this)">
+      Get In Touch
+      <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+  </div>
+
+  <div class="panel-container">
+    
+    <!-- SEE MY WORK -->
+    <div id="panel-work" class="panel-content">
+      <div class="work-grid">
+        
+        <div class="tilt-card" onclick="openVideo('S3JZtuoqGQg')">
+          <div class="card-inner">
+            <div class="video-preview">
+              <img src="https://img.youtube.com/vi/S3JZtuoqGQg/hqdefault.jpg" alt="Showcase 1">
+              <div class="play-overlay"><div class="play-trigger">▶</div></div>
+            </div>
+            <div class="card-info"><h4>SFX Showcase — 01</h4></div>
+          </div>
+        </div>
+
+        <div class="tilt-card" onclick="openVideo('S4bc3d2KgW4')">
+          <div class="card-inner">
+            <div class="video-preview">
+              <img src="https://img.youtube.com/vi/S4bc3d2KgW4/hqdefault.jpg" alt="Showcase 2">
+              <div class="play-overlay"><div class="play-trigger">▶</div></div>
+            </div>
+            <div class="card-info"><h4>SFX Showcase — 02</h4></div>
+          </div>
+        </div>
+
+        <div class="tilt-card" onclick="openVideo('YZOPTuiZS30')">
+          <div class="card-inner">
+            <div class="video-preview">
+              <img src="https://img.youtube.com/vi/YZOPTuiZS30/hqdefault.jpg" alt="Showcase 3">
+              <div class="play-overlay"><div class="play-trigger">▶</div></div>
+            </div>
+            <div class="card-info"><h4>SFX Showcase — 03</h4></div>
+          </div>
+        </div>
+
+        <div class="tilt-card" onclick="openVideo('iIqWnPWpuYE')">
+          <div class="card-inner">
+            <div class="video-preview">
+              <img src="https://img.youtube.com/vi/iIqWnPWpuYE/hqdefault.jpg" alt="Showcase 4">
+              <div class="play-overlay"><div class="play-trigger">▶</div></div>
+            </div>
+            <div class="card-info"><h4>SFX Showcase — 04</h4></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ABOUT ME -->
+    <div id="panel-about" class="panel-content">
+      <div class="glass-card">
+        <h3>About ART 7</h3>
+        <p>I create sound effects, combat audio, and immersive soundscapes for games. From powerful impacts to detailed environments, I bring gameplay moments to life through sound.</p>
+      </div>
+    </div>
+
+    <!-- GET IN TOUCH -->
+    <div id="panel-contact" class="panel-content">
+      <div class="glass-card">
+        <h3>Let's Work Together</h3>
+        <p>Have a game project that needs high-quality SFX or audio design? Feel free to reach out to me directly on Discord.</p>
+        <a href="https://discord.com/users/z.0_" target="_blank" class="btn-discord">
+          <svg width="22" height="22" viewBox="0 0 127.14 96.36" fill="currentColor"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+          Discord: z.0_
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 🎬 POPUP VIDEO MODAL 🎬 -->
+<div id="videoModal" class="video-modal" onclick="closeVideo(event)">
+  <div class="modal-box">
+    <button class="close-modal" onclick="closeVideo(event, true)">✕</button>
+    <div class="modal-iframe-wrap">
+      <iframe id="modalPlayer" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Canvas Wave Animation
+  const canvas = document.getElementById('waveCanvas');
+  const ctx = canvas.getContext('2d');
+  let width, height, step = 0;
+
+  function resize() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function drawWave() {
+    ctx.clearRect(0, 0, width, height);
+    ctx.lineWidth = 2;
+    
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.25)';
+    for (let x = 0; x < width; x += 10) {
+      const y = Math.sin(x * 0.004 + step) * 45 + Math.cos(x * 0.002 + step) * 15 + height / 2;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(138, 43, 226, 0.18)';
+    for (let x = 0; x < width; x += 10) {
+      const y = Math.cos(x * 0.003 - step) * 55 + Math.sin(x * 0.005 + step) * 25 + height / 2;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    step += 0.02;
+    requestAnimationFrame(drawWave);
+  }
+  drawWave();
+
+  // Mouse Glow Tracking
+  const glow = document.getElementById('cursor-glow');
+  window.addEventListener('mousemove', (e) => {
+    glow.style.left = e.clientX + 'px';
+    glow.style.top = e.clientY + 'px';
+  });
+
+  // Accordion Logic
+  function toggleSection(panelId, btn) {
+    const targetPanel = document.getElementById('panel-' + panelId);
+    const isOpen = targetPanel.classList.contains('show');
+
+    document.querySelectorAll('.panel-content').forEach(p => p.classList.remove('show'));
+    document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('active'));
+
+    if (!isOpen) {
+      targetPanel.classList.add('show');
+      btn.classList.add('active');
+    }
+  }
+
+  // Video Modal Logic
+  function openVideo(videoId) {
+    const modal = document.getElementById('videoModal');
+    const player = document.getElementById('modalPlayer');
+    player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+    modal.classList.add('active');
+  }
+
+  function closeVideo(e, force = false) {
+    if (force || e.target.id === 'videoModal') {
+      const modal = document.getElementById('videoModal');
+      const player = document.getElementById('modalPlayer');
+      modal.classList.remove('active');
+      player.src = '';
+    }
+  }
+
+  // Tilt Card Effect
+  document.querySelectorAll('.tilt-card').forEach(card => {
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left - rect.width / 2;
+      const y = e.clientY - rect.top - rect.height / 2;
+      card.style.transform = `rotateX(${-y / 10}deg) rotateY(${x / 10}deg) translateY(-5px)`;
+    });
+
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'rotateX(0deg) rotateY(0deg) translateY(0)';
+    });
+  });
+</script>
+
+</body>
+</html>
